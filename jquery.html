@@ -1,0 +1,268 @@
+<!doctype html>
+<html>
+<head>
+	<title>JugnooMe Swarm</title>
+	<script src="jquery-1.7.2.min.js" type="text/javascript"></script>
+</head>
+<style>
+body,html {font:Arial 12px #c8c8c8;height:100%;}
+body {background:-moz-radial-gradient(800px 200px, farthest-corner, #333, #000);background:-webkit-radial-gradient(800px 200px, circle, #333, #000);}
+p {margin:5px 0 0;}
+.hidden {display:none;}
+.maincontainer {height:700px;margin:0 auto;position:relative;width:1350px;}
+.start {bottom:50px;height:100px;position:absolute;width:100px;}
+.start a {bottom:0; left: -5000; position:absolute;}
+.start img {width:0;}
+.shadow {-moz-box-shadow:2px 2px 5px #111111;-webkit-box-shadow:2px 2px 5px #111111;box-shadow: 2px 2px 5px #111111;}
+
+.modalcontainer {background:#fff;border-radius:15px;-moz-border-radius: 15px;-web-kit-border-radius:15px;display:none;padding:10px;position:absolute;width:400px;z-index:10;}
+.modalcloser {background:url(images/closer.png) no-repeat;cursor:pointer;display:block;height:28px;width:28px;position:absolute;top:-5px;right:-5px;}
+.modalbody {font:14px Arial;}
+.modaltitle {border-bottom:1px solid #a5a5a5;padding:0 10px 5px;width:95%;}
+.modaltitle .shape {float:left;}
+.modaltitle .date {float:right;font:12px Arial;margin:2px 10px 0 0;}
+.modalcomment {background:url(images/commentbar.jpg) no-repeat 0 0;padding:40px 0 10px;}
+.modalcomment input {margin:0 10px 0 5px;width:300px;}
+.imagecontainer {text-align:center;}
+.usericon {float:left;width:48px;padding:10px 10px 0;}
+.usercomment {float:left;width:330px;color:#3a3a3a;font:14px Arial;padding:3px 0 0;}
+.usercomment a {color:#47C2F0;font-weight:bold;}
+.usercomment small {color:#a5a5a5;}
+.clearfix {display:inline-block;}
+.clearfix:after {content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0;}
+</style>
+<script>
+$(function(){
+	var play = false;
+	
+	$.fn.tpl = function(tpl, data, icon) {
+		var date = new Date();
+		data["date"] = date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes()
+		data["icon"] = icon
+		var markup = $(tpl).html()
+		for (var i in data) {
+			markup = markup.replace(new RegExp("\\{\\{" + i + "\\}\\}", "g"), data[i])
+		}
+		this.html(markup)
+		return this
+	}
+	
+	$.fn.linger = function(play) {
+		var self = this, x = fuzz(0, 20), y = fuzz(0, 20), speed = 3000, opacity = fuzz(0.7, 0.3)
+		
+		new function rec() {
+			if(play)
+				self.animate({top: "+="+y, left: "+="+x, opacity: opacity}, speed, function() {
+					self.animate({top: "-="+y, left: "-="+x, opacity: 1}, speed, rec)
+				})
+			else{
+				self.clearQueue();
+				self.stop()
+			}
+		}
+		return this
+	}
+	
+	function imageOverlaps(a, b) {
+		var aw = a.offsetWidth, ah = a.offsetHeight, al = a.parentNode.offsetLeft, at = a.parentNode.offsetTop, ar = al + aw, ab = at + ah
+		var bw = b.offsetWidth, bh = b.offsetHeight, bl = b.parentNode.offsetLeft, bt = b.parentNode.offsetTop, br = bl + bw, bb = bt + bh
+		return overlaps(al, ar, at, ab, bl, br, bt, bb)
+	}
+	function overlaps(al, ar, at, ab, bl, br, bt, bb) {
+		return !(al > br || ar < bl || at > bb || ab < bt)
+	}
+	
+	function fuzz(n, dev) {
+		return n + ((Math.random() - 0.5) * dev)
+	}
+	
+	function position(center, radius) {
+		var angle = fuzz(Math.PI, Math.PI * 2)
+		return {x: (center.x + (Math.cos(angle) * radius) * 1.2), y: (center.y + (Math.sin(angle) * radius) * 0.7)}
+	}
+	
+	function generate(c, width, center, radius, o) {
+		var speed = fuzz(700, 300)
+		var delay = fuzz(700, 700)
+		var shape = Math.floor(Math.random() * 5)
+		var pos = position(center, radius)
+		var op = o ? o : 1
+		
+		var anchor = $("<a href='#'><img src='images/newshape/shape"+ c + shape + ".png' /></a>")
+			.appendTo(startCanvas)
+			.delay(delay)
+			.animate({
+				left: fuzz(400, 400),
+				bottom: fuzz(100, 100)
+			}, speed, "linear")
+			.animate({
+				left: pos.x,
+				bottom: pos.y
+			}, speed)
+			//.linger()
+			.find("img").attr("id", "img" + guid++)
+				.css({"opacity" : op})
+				.delay(delay)
+				.animate({
+					width: width
+				})
+			.mouseup(function(e) {
+				e.preventDefault()
+				var self = $(this)
+				var target = $(this.parentNode)
+				var top = target.offset().top + target.outerHeight()
+				var left = target.offset().left + (target.outerWidth()/2) - 200
+				var id = "popup" + self.attr("id").substr(3);
+				
+				$(".modalcontainer").remove()
+				
+				var popup = $("<div class='modalcontainer shadow'><a class='modalcloser' href='javascript:;'></a><div class='modalbody'></div></div>")
+					.appendTo($(".maincontainer"))
+					.attr({"id": id})
+					.css({
+						"top": top + "px",
+						"left": left + "px"
+						})
+					.fadeIn()
+					.find(".modalbody")
+					.tpl("#tpl-" + shape, getData(shape))
+
+				if(shape > 2) popup.closest(".modalcontainer").width(560).css({"left":left - "95" + "px"})
+				
+				//popup re positioning
+				if(left + popup.width() > 1150) {
+					left = left - (popup.width()/2)
+					popup.closest(".modalcontainer").css({"left": left+"px"})
+				}
+				if(left < 0) 
+					popup.closest(".modalcontainer").css({"left": "20px"})
+				
+				$(".modalcloser").click(function(e){
+					e.preventDefault()
+					$(e.target).closest(".modalcontainer").remove()
+					})
+				})
+			.mouseenter(function(e){
+				e.preventDefault()
+				var self = $(this)
+				var target = $(this.parentNode).css({zIndex: 2})
+				var height = self.outerHeight()
+				self.css({"width": width*1.5, "height": height*1.5})
+				})
+			.mouseleave(function(e){
+				e.preventDefault()
+				var self = $(this)
+				var target = $(this.parentNode).css({zIndex: 1})
+				var height = self.outerHeight()
+				self.css({"width": width,"height": height/1.5})
+				})
+	}
+	function getData(shape) {
+		if (shape == 0 || shape == 2) return twitter.shift() || twitterfiller
+		else if (shape == 1) return images.shift() || imagefiller
+		else if (shape == 3 || shape == 4) return youtube.shift() || youtubefiller
+	}
+	
+	var startCanvas = $(".start")
+	var guid = 0
+	
+	var images = [{url:"popupimage1.jpg", comment:"Today, I had to opportunity to skate and meet Mason for a Scotiabank event at the Richmond Oval :’) It made my day seeing him hold little kid’s hands on the ice and help them skate around. Absolutely adorable!"},{url:"popupimage2.jpg",comment:""},{url:"popupimage3.jpg",comment:"#scotiabank #chimney #toronto #bloor (Taken with instagram)"},{url:"popupimage4.jpg",comment:""},{url:"popupimage6.jpg",comment:""},{url:"popupimage7.jpg",comment:"More Scotia Bank wisdom"},{url:"popupimage8.jpg",comment:"Bank of Nova Scotia"},{url:"popupimage9.jpg",comment:"18-11-2011 - Bank Robbery, Toronto"},{url:"popupimage5.jpg",comment:""},{url:"popupimage10.jpg",comment:""}], imagefiller=images.pop()
+	var youtube = [], youtubefiller, twitter = [], twitterfiller
+	$.when(
+		$.get("youtubedata.xml", function(data) {
+			youtube = $(data).find("entry id").map(function() {
+				return {id: $(this).text().split("/").pop()}
+			}).get()
+			youtubefiller = youtube.pop()
+		}),
+		$.get("twitterdata.xml", function(data) {
+			twitter = $(data).find("entry").map(function() {
+				return {title: $(this).find("content").text(), published: $(this).find("published").text()}
+			}).get()
+			twitterfiller = twitter.pop()
+		})
+		
+	).done(function() {
+		//red
+		for (var n = 0; n < 10; n++) generate(1, fuzz(50, 5), {x: 800, y: 400}, fuzz(100, 100))
+		for (var n = 0; n < 40; n++) generate(1, fuzz(35, 10), {x: 760, y: 370}, fuzz(180, 180))
+		for (var n = 0; n < 30; n++) generate(1, fuzz(25, 5), {x: 720, y: 340}, fuzz(240, 240), 0.7)
+		for (var n = 0; n < 20; n++) generate(1, fuzz(20, 5), {x: 650, y: 370}, fuzz(200, 200), 0.6)
+		for (var n = 0; n < 20; n++) generate(1, fuzz(15, 5), {x: 620, y: 320}, fuzz(180, 180), 0.5)
+		for (var n = 0; n < 20; n++) generate(1, fuzz(15, 5), {x: 600, y: 320}, fuzz(220, 220), 0.5)
+		//blue
+		for (var n = 0; n < 5; n++) generate(0, fuzz(45, 5), {x: 400, y: 220}, fuzz(100, 200))
+		for (var n = 0; n < 30; n++) generate(0, fuzz(30, 10), {x: 500, y: 200}, fuzz(150, 200), 0.7)
+		for (var n = 0; n < 20; n++) generate(0, fuzz(25, 5), {x: 600, y: 300}, fuzz(100, 50), 0.7)
+		for (var n = 0; n < 20; n++) generate(0, fuzz(20, 5), {x: 500, y: 200}, fuzz(100, 50), 0.7)
+		for (var n = 0; n < 15; n++) generate(0, fuzz(15, 5), {x: 300, y: 160}, fuzz(50, 50), 0.7)
+		for (var n = 0; n < 15; n++) generate(0, fuzz(15, 5), {x: 250, y: 180}, fuzz(20, 20), 0.4)
+		for (var n = 0; n < 10; n++) generate(0, fuzz(15, 5), {x: 200, y: 150}, fuzz(20, 20), 0.4)
+		for (var n = 0; n < 5; n++) generate(0, fuzz(10, 5), {x: 150, y: 150}, fuzz(20, 20), 0.4)
+	})
+	
+	//$(".play").click(function(){$(".start").find("a").linger(true)})
+	//$(".pause").click(function(){$(".start").find("a").linger(false)})
+})
+</script>
+<body>
+	<div class="maincontainer">
+		<div class="start"></div>
+	</div>
+	<!--<a href="javascript:;" class="play"><img src="images/playbutton.png" width="50" /></a>
+	<a href="javascript:;" class="pause"><img src="images/pausebutton.png" width="50" /></a>
+	
+	templates: make sure they have type set to something that is NOT a javascript MIME type
+	see $.fn.tpl(template, data)
+	data in an object {key: value} can be populated using mustache-like notation. {{key}} would be replaced by value
+	-->
+	<script id="tpl-0" type="text/x-jquery-template">
+		<div class="userdiv clearfix">
+			<div class="usericon"><img src="images/scotialogo.jpg" /></div>
+			<div class="usercomment">
+				<p>{{title}}</p>
+				<p><small>{{published}}</small></p>
+			</div>
+		</div>
+		<div class="modalcomment">
+			<input type="text" />
+			<button>Send</button>
+		</div>
+	</script>
+	<script id="tpl-1" type="text/x-jquery-template">
+		<div class="imagecontainer"><img src="images/{{url}}" width="360" /></div>
+		<p> {{comment}}</p><br />
+		<div class="modalcomment">
+			<input type="text" />
+			<button>Send</button>
+		</div>
+	</script>
+	<script id="tpl-2" type="text/x-jquery-template">
+		<div class="userdiv clearfix">
+			<div class="usericon"><img src="images/scotialogo.jpg" /></div>
+			<div class="usercomment">
+				<p>{{title}}</p>
+				<p><small>{{published}}</small></p>
+			</div>
+		</div>
+		<div class="modalcomment">
+			<input type="text" />
+			<button>Send</button>
+		</div>
+	</script>
+	<script id="tpl-3" type="text/x-jquery-template">
+		<iframe width="560" height="315" src="http://www.youtube.com/embed/{{id}}" frameborder="0" allowfullscreen></iframe>
+		<div class="modalcomment">
+			<input type="text" />
+			<button>Send</button>
+		</div>
+	</script>
+	<script id="tpl-4" type="text/x-jquery-template">
+		<iframe width="560" height="315" src="http://www.youtube.com/embed/{{id}}" frameborder="0" allowfullscreen></iframe>
+		<div class="modalcomment">
+			<input type="text" />
+			<button>Send</button>
+		</div>
+	</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+body,html {font:Arial 12px #c8c8c8;margin:0;padding:0;overflow:hidden;}
+body {background:-moz-radial-gradient(800px 200px, farthest-corner, #333, #000);background:-webkit-radial-gradient(800px 200px, circle, #333, #000);}
+#swarm {background:transparent;}
+.modalcontainer {background:#fff;border-radius:15px;-moz-border-radius: 15px;-web-kit-border-radius:15px;display:none;padding:10px;position:absolute;width:400px;z-index:10;}
+.modalcloser {background:url(images/closer.png) no-repeat;cursor:pointer;display:block;height:28px;width:28px;position:absolute;top:-5px;right:-5px;}
+.modalbody {font:14px Arial;}
+.modaltitle {border-bottom:1px solid #a5a5a5;padding:0 10px 5px;width:95%;}
+.modaltitle .shape {float:left;}
+.modaltitle .date {float:right;font:12px Arial;margin:2px 10px 0 0;}
+.modalcomment {background:url(images/commentbar.jpg) no-repeat 0 0;padding:40px 0 10px;}
+.modalcomment input {margin:0 10px 0 5px;width:300px;}
+.imagecontainer {text-align:center;}
+.usericon {float:left;width:48px;padding:10px 10px 0;}
+.usercomment {float:left;width:330px;color:#3a3a3a;font:14px Arial;padding:3px 0 0;}
+.usercomment a {color:#47C2F0;font-weight:bold;}
+.usercomment small {color:#a5a5a5;}
+.clearfix {display:inline-block;}
+.clearfix:after {content:".";display:block;clear:both;visibility:hidden;line-height:0;height:0;}

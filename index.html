@@ -7,39 +7,36 @@
 </head>
 <script>
 var items = [], imgs=[], WIDTH = $(window).width(), HEIGHT = $(window).height(), POPUP
-for(var i=0;i<2;i++){
-	for(var j=0;j<5;j++){
+for(var i=0;i<1;i++){
+	imgs[i] =[]
+	for(var j=0;j<4;j++){
 		var img = new Image()
-		img.src = "images/newshape/shape"+ i + j +".png"
-		imgs.push(img)
+		img.src = "images/shape"+ i + j +".png"
+		imgs[i].push(img)
 	}
+	imgs.push(imgs[i])
 }
+var makePoint = function(x, y, range) {
+	range = range ? range : 100
+	var rangex = Math.round(Math.random() * range)
+	var rangey = Math.round(Math.random() * range)
+	return {x: Math.round(x + rangex), y: Math.round(y + rangey)}
+}
+var overlap = function(p1, p2, r1, r2){
+	var overlap = false, xs = ys = 0;
 
-$.fn.tpl = function(tpl, data) {
-	var date = new Date();
-	data["date"] = date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes()
-	var markup = $(tpl).html()
-	for (var i in data) {
-		markup = markup.replace(new RegExp("\\{\\{" + i + "\\}\\}", "g"), data[i])
-	}
-	this.html(markup)
-	return this
+	xs = p2.x - p1.x;
+	xs = xs * xs;
+	ys = p2.y - p1.y;
+	ys = ys * ys;
+	if(Math.round(Math.sqrt(xs + ys)) < (r1 + r2)) overlap = true
+	
+	return overlap
 }
-
-var requestAnimFrame = new function() {
-	return window.requestAnimationFrame || 
-		window.webkitRequestAnimationFrame || 
-		window.mozRequestAnimationFrame || 
-		window.oRequestAnimationFrame || 
-		window.msRequestAnimationFrame || 
-		function(callback) {
-			window.setTimeout(callback, 1000 / 60);
-		};
-}
-function swing(a) {
+var swing = function(a) {
 	return -Math.sin(a * Math.PI) / 2 + 0.5;
 }
-function bezier(t, p0, p1, p2, p3) {
+var bezier = function(t, p0, p1, p2, p3) {
 	var cx = 3 * (p1.x - p0.x)
 	var bx = 3 * (p2.x - p1.x) - cx;
 	var ax = p3.x - p0.x - cx - bx;
@@ -53,26 +50,24 @@ function bezier(t, p0, p1, p2, p3) {
 	
 	return [xt, yt]
 }
-
-var makePoint = function(x, y, range) {
-	range = range ? range : 100
-	var rangex = Math.round(Math.random() * range)
-	var rangey = Math.round(Math.random() * range)
-	return {x: Math.round(x + rangex), y: Math.round(y + rangey)}
+var requestAnimFrame = new function() {
+	return window.requestAnimationFrame || 
+		window.webkitRequestAnimationFrame || 
+		window.mozRequestAnimationFrame || 
+		window.oRequestAnimationFrame || 
+		window.msRequestAnimationFrame || 
+		function(callback) {
+			window.setTimeout(callback, 1000 / 60);
+		};
+}
+$.fn.tpl = function(tpl, data) {
+	var html = $(tpl).html().replace(/\{\{(.+?)\}\}/gim, function(match, key) {
+		return data ? data[key] || "" : ""
+	})
+	this.html(html)
+	return this
 }
 
-var overlap = function(p1, p2, r1, r2){
-	var overlap = false, xs = ys = 0;
-
-	xs = p2.x - p1.x;
-	xs = xs * xs;
-	ys = p2.y - p1.y;
-	ys = ys * ys;
-
-	if(Math.sqrt(xs + ys) < (r1 + r2)) overlap = true
-	
-	return overlap
-}
 var start, step = [0, 0], tempitems=[]
 function animate(ctx) {
 	var delta = new Date
@@ -121,30 +116,36 @@ function animate(ctx) {
 		// 		})
 	})
 }
-var draw = function(){
-	var video = [], twitter = [], post = [], article = []
+
+var getData = function(){ // 0-twitter,1-post, 2-article, 3-video
 	$.getJSON("Video.txt", function(data) {
-	
+		draw(3, data)
 	}),
 	$.getJSON("Post.txt", function(data) {
-		
+		draw(0, data)
 	}),
-	$.getJSON("Article.txt", function(data) {
-	
+	$.getJSON("Article.txt", function(data){
+		draw(2, data)
 	})
+}
 
-	function getData(shape) {
-		switch(shape){
-			case 
-		}
-		if (shape == 0 || shape == 2) return twitter.shift() || twitterfiller
-		else if (shape == 3 || shape == 4) return youtube.shift() || youtubefiller
-	}
+var draw = function(shape, data){
+	var today = new Date;
+	data.forEach(function(item){
+		var age = today - new Date(item.published_date) //age = (currentDate - publishDate)
+		var color = 0
+		var r = Math.round(Math.random()*10) //size depends on velocity and recency, needs to be calculated according age&speed. 
+											 //speed = (number of views)/age
+		var d = r * 0.01 + Math.random() * 0.1 + 0.1
+		var popup = $("<div class='modalcontainer shadow'><a class='modalcloser' href='javascript:;'></a><div class='modalbody'></div></div>")
+		popup.find(".modalbody").tpl("#tpl-" + shape, data)
+
+		items.push({img:imgs[color][shape], x:120, y:120, step:[0, 0], p0:{x:0, y:0}, p1:{x:150, y:200}, p2:makePoint(WIDTH/6, HEIGHT), p3: makePoint(WIDTH/4, HEIGHT/2), age:10-r, speed:100/(11-r), size:r*5, delay:d, start:now, count:0, popup:popup})
+	})
 }
 
 function genPopup(e) {
 	var p = {x : e.clientX, y : e.clientY};
-	
 	items.forEach(function(el) {
 		if (overlap(p, el.p3, 0, el.size)) {
 			//drift()
@@ -177,18 +178,7 @@ $(function(){
 	canvas.width = WIDTH
 	canvas.height = HEIGHT
 	
-	for(var i=0;i<10;i++){ //color and shape: can be different number, needs to be calculate according the json data
-		for(var j=0;j<30;j++){
-			var r = Math.round(Math.random()*10) //size depends on velocity and recency, needs to be calculated according age&speed. 
-												 //age = (currentDate - publishDate), speed = (number of views)/age
-			var d = r * 0.01 + Math.random() * 0.1 + 0.1
-			var shape = imgs[i].src.substr(imgs[i].src.length - 5, 1)
-			var popup = $("<div class='modalcontainer shadow'><a class='modalcloser' href='javascript:;'></a><div class='modalbody'></div></div>")
-						.find(".modalbody")
-						//.tpl("#tpl-" + shape, getData(shape))
-			items.push({img:imgs[i], x: 120, y: 120, step: [0, 0], p0:{x:0, y:0}, p1:{x:150, y:200}, p2: makePoint(WIDTH/6, HEIGHT), p3: makePoint(WIDTH/4, HEIGHT/2), age:10-r, speed:100/(11-r), size: r*5, delay:d, start:now, count:0, popup:popup})
-		}
-	}
+	getData()
 	
 	animate(ctx)
 	
@@ -199,51 +189,23 @@ $(function(){
 	<canvas id="swarm"></canvas>
 	<script id="tpl-0" type="text/x-jquery-template">
 		<div class="userdiv clearfix">
-			<div class="usericon"><img src="images/scotialogo.jpg" /></div>
+			<div class="usericon"><img src="{{author.profile_image}}" /></div>
 			<div class="usercomment">
-				<p>{{title}}</p>
-				<p><small>{{published}}</small></p>
+				<p>{{content}} - {{author.name}}</p>
+				<p><small>{{published_date}}</small></p>
 			</div>
-		</div>
-		<div class="modalcomment">
-			<input type="text" />
-			<button>Send</button>
 		</div>
 	</script>
 	<script id="tpl-1" type="text/x-jquery-template">
-		<div class="imagecontainer"><img src="images/{{url}}" width="360" /></div>
-		<p> {{comment}}</p><br />
-		<div class="modalcomment">
-			<input type="text" />
-			<button>Send</button>
-		</div>
+		
 	</script>
 	<script id="tpl-2" type="text/x-jquery-template">
-		<div class="userdiv clearfix">
-			<div class="usericon"><img src="images/scotialogo.jpg" /></div>
-			<div class="usercomment">
-				<p>{{title}}</p>
-				<p><small>{{published}}</small></p>
-			</div>
-		</div>
-		<div class="modalcomment">
-			<input type="text" />
-			<button>Send</button>
-		</div>
+		
 	</script>
 	<script id="tpl-3" type="text/x-jquery-template">
-		<iframe width="560" height="315" src="http://www.youtube.com/embed/{{id}}" frameborder="0" allowfullscreen></iframe>
-		<div class="modalcomment">
-			<input type="text" />
-			<button>Send</button>
-		</div>
-	</script>
-	<script id="tpl-4" type="text/x-jquery-template">
-		<iframe width="560" height="315" src="http://www.youtube.com/embed/{{id}}" frameborder="0" allowfullscreen></iframe>
-		<div class="modalcomment">
-			<input type="text" />
-			<button>Send</button>
-		</div>
+		<h3>{{title}}</h3>
+		<iframe width="560" height="315" src="http://www.youtube.com/embed/{{video_id}}" frameborder="0" allowfullscreen></iframe>
+		<p>{{description}}</p>
 	</script>
 </body>
 </html>

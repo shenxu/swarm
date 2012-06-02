@@ -6,7 +6,7 @@
 	<script src="jquery-1.7.2.min.js" type="text/javascript"></script>
 </head>
 <script>
-var items = [], imgs=[], WIDTH = $(window).width(), HEIGHT = $(window).height(), POPUP
+var items = [], imgs=[], finals = [], WIDTH = $(window).width(), HEIGHT = $(window).height(), POPUP
 for(var i=0;i<1;i++){
 	imgs[i] =[]
 	for(var j=0;j<4;j++){
@@ -72,6 +72,7 @@ var start, step = [0, 0], tempitems=[]
 function animate(ctx) {
 	var delta = new Date
 	items.forEach(function(item) {ctx.clearRect(item.step[0], item.step[1], img.width, img.height)})
+	recalc(finals)
 
 	items.forEach(function(item) {
 		var color = item.img.src.substr(item.img.src.length - 6, 1)
@@ -88,6 +89,8 @@ function animate(ctx) {
 					item.p2 = makePoint(WIDTH*0.9, HEIGHT/2)
 					item.p3 = makePoint(WIDTH*2/3 - (item.age*80), HEIGHT*0.35 - (item.speed*3.5), 320)
 					if(item.p3.y < 20) item.p3.y = 50;
+					item.p3.r = item.size * 0.55
+					finals.push(item.p3)
 				}
 			}
 			else { //blue feeds, distance away from red feeds
@@ -96,6 +99,8 @@ function animate(ctx) {
 				else if (item.count == 2) {
 					item.p2 = makePoint(WIDTH/9, HEIGHT/2)
 					item.p3 = makePoint(WIDTH/2 - (item.age*80), HEIGHT*0.5 - (item.speed*3.4), 280)
+					item.p3.r = item.size * 0.55
+					finals.push(item.p3)
 				}
 			}
 			if (item.count < 3) item.start = new Date
@@ -115,6 +120,57 @@ function animate(ctx) {
 		// 			}
 		// 		})
 	})
+}
+
+function recalc(nodes) {
+	for (var i = 0; i < nodes.length; i++) {
+		for (var j = 0; j < nodes.length; j++) {
+			if (i == j) {
+				continue;
+			}
+
+			pack(nodes[i], nodes[j]);
+		}
+	}
+};
+function normalize(v) {
+	var magnitude = Math.sqrt((v.x * v.x) + (v.y * v.y));
+
+	v.x = v.x / magnitude;
+	v.y = v.y / magnitude;
+	return v
+};
+function mult(v, m) {
+	v.x *= m;
+	v.y *= m;
+	return v
+};
+function pack(a, b) {
+	if (intersects(a, b)) {
+		var v = {x:0, y: 0}
+		v.x = a.x - b.x;
+		v.y = a.y - b.y;
+		var d = (v.x * v.x) + (v.y * v.y);
+
+		v = normalize(v);
+		v = mult(v, (a.r + b.r + 1 - Math.sqrt(d)) * 0.25);
+
+		a.x += v.x;
+		a.y += v.y;
+
+		b.x -= v.x;
+		b.x -= v.y;
+	}
+}
+function distance(ax, ay, bx, by) {
+	var dx = ax - bx;
+	var dy = ay - by;
+
+	return Math.sqrt((dx*dx) + (dy*dy));
+};
+function intersects(a, b) {
+	var d = distance(a.x, a.y, b.x, b.y);
+	return (d < (a.r + b.r + 1));
 }
 
 var getData = function(){ // 0-twitter,1-post, 2-article, 3-video

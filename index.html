@@ -124,7 +124,7 @@ function recalc(nodes) {
 				continue;
 			}
 
-			pack(nodes[i], nodes[j], true);
+			pack(nodes[i], nodes[j]);
 		}
 	}
 };
@@ -184,7 +184,6 @@ function intersects(a, b) {
 	var d = distance(a.x, a.y, b.x, b.y);
 	return (d < (a.r + b.r + 1));
 }
-
 
 var getData = function(){ // 0-twitter,1-post, 2-article, 3-video
 	var videoData, twitterData, articleData
@@ -272,10 +271,6 @@ function genPopup(e) {
 			})
         }
     })
-}
-function drift() {
-	//BUBBLE.not(".pop").unbind("click mouseenter").stop(true).animate({top: -BUBBLE.outerHeight(true)}, 1000, queue)
-	//BUBBLE = $()
 }
 
 $(function(){
